@@ -1,0 +1,41 @@
+---
+- name: Install metrics-server on K3s master
+  hosts: k3s_master
+  become: yes
+
+  tasks:
+
+    - name: Download metrics-server manifest
+      ansible.builtin.get_url:
+        url: https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+        dest: /tmp/metrics-server.yaml
+
+    - name: Apply metrics-server manifest
+      ansible.builtin.command: kubectl apply -f /tmp/metrics-server.yaml
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+    - name: Patch metrics-server for K3s (insecure TLS)
+      ansible.builtin.command: >
+        kubectl patch deployment metrics-server -n kube-system
+        --type='json'
+        -p='[{"op": "add", "path": "/spec/template/spec/containers/0/args/-",
+        "value": "--kubelet-insecure-tls"}]'
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+    - name: Wait for metrics-server rollout
+      ansible.builtin.command: kubectl rollout status deployment/metrics-server -n kube-system
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+    - name: Verify metrics-server (kubectl top nodes)
+      ansible.builtin.command: kubectl top nodes
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: metrics_output
+      ignore_errors: yes
+
+    - name: Show metrics-server output
+      ansible.builtin.debug:
+        var: metrics_output.stdout

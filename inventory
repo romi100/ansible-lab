@@ -1,0 +1,9 @@
+[test]
+srv-rf-test01 ansible_host=192.168.100.109 ansible_user=vboxuser
+srv-rf-test02 ansible_host=192.168.100.110 ansible_user=vboxuser
+
+[k3s_master]
+srv-rf-test01 ansible_host=192.168.100.109 ansible_user=vboxuser
+
+[k3s_worker]
+srv-rf-test02 ansible_host=192.168.100.110 ansible_user=vboxuser
