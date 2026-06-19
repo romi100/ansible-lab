@@ -1,0 +1,9 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: yes
+
+  tasks:
+    - name: Test message
+      debug:
+        msg: "Ansible-pull funguje na srv-rf-ans01"
