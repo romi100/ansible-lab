@@ -1,0 +1,28 @@
+- name: Test sudo and system info
+  hosts: test
+  become: yes
+
+  tasks:
+    - name: Test sudo by running id
+      command: id
+      register: id_output
+
+    - name: Show id output
+      debug:
+        var: id_output.stdout
+
+    - name: Get system information
+      ansible.builtin.setup:
+        gather_subset:
+          - hardware
+          - network
+          - virtual
+      register: sysinfo
+
+    - name: Show hostname
+      debug:
+        msg: "Hostname: {{ sysinfo.ansible_facts.ansible_hostname }}"
+
+    - name: Show OS version
+      debug:
+        msg: "OS: {{ sysinfo.ansible_facts.ansible_distribution }} {{ sysinfo.ansible_facts.ansible_distribution_version }}"
