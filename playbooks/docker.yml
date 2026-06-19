@@ -1,0 +1,82 @@
+- name: Install Docker CE on Debian 13
+  hosts: test
+  become: yes
+
+  tasks:
+    - name: Remove old Docker versions
+      apt:
+        name:
+          - docker
+          - docker-engine
+          - docker.io
+          - containerd
+          - runc
+        state: absent
+        purge: yes
+
+    - name: Install required packages
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+        update_cache: yes
+
+    - name: Create keyrings directory
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Download Docker GPG key
+      get_url:
+        url: https://download.docker.com/linux/debian/gpg
+        dest: /etc/apt/keyrings/docker.gpg
+        mode: '0644'
+
+    - name: Add Docker repository
+      copy:
+        dest: /etc/apt/sources.list.d/docker.list
+        content: |
+          deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Docker CE
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: latest
+
+    - name: Enable and start Docker
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Configure containerd to use systemd cgroup driver
+      copy:
+        dest: /etc/containerd/config.toml
+        content: |
+          version = 2
+          [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+            SystemdCgroup = true
+      notify: Restart containerd
+
+    - name: Add vboxuser to docker group
+      user:
+        name: vboxuser
+        groups: docker
+        append: yes
+
+  handlers:
+    - name: Restart containerd
+      systemd:
+        name: containerd
+        state: restarted
